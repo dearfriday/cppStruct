@@ -35,67 +35,34 @@ struct book {
 
 
 int main() {
-//    std::vector<size_t> test;
-//    test.push_back(1);
-//    test.push_back(3);
-//    test.push_back(5);  //2
-//    test.push_back(7);
-//    test.push_back(9);
-//
-//
-//
-//    size_t key = 9;
-//
-//    size_t front = 0;
-//    size_t end = test.size() - 1;
-//    size_t mid = (front + end) / 2;
-//
-//    auto func = [](const size_t &t1, const size_t &t2) {
-//        return t1 < t2;
-//    };
-//
-//    //&& test.size() > mid && mid > 0
-//    while (front < end ) {
-//        if (func(key, test[mid])) {
-//            end = mid > 0 ? mid - 1 : mid;
-//        } else if (func(test[mid], key)) {
-//            front = mid + 1;
-//        } else {
-//            std::cout << "eq ? " << mid << std::endl;
-//            break;
-//        }
-//        mid = (front + end) / 2;
-//    }
-//
-//    if (func(test[mid], key)) {
-//        mid++;
-//    } else {
-//        std::cout << "eq ? " << mid << std::endl;
-//    }
-//
-//
-//
-//
-//
-//    std::cout << "index " << mid << std::endl;
-
     try {
         std::cout << "xxxxxxxxx\n";
         bpptree<int, 4> books;
-        std::vector<int> data = {39 , 22, 97, 41, 53, 13, 21, 40, 30, 27, 33, 36, 35, 34, 24, 29, 26, 17, 28, 29, 31};
-        for(size_t i = 0; i < data.size(); i++){
+        std::vector<int> data = {39, 22, 97, 41, 53, 13, 21, 40, 30, 27, 33, 36, 35, 34, 23, 24, 29, 26, 32, 17, 28, 31};
+
+        for (size_t i = 0; i < data.size(); i++) {
             books.insert(data[i]);
         }
         books.insert(32);
+
+
+
+        for( bpptree<int, 4>::iterator itr = books.begin(); itr != books.end(); itr++){
+            if(*itr == 97){
+                int k = 0;
+            }
+            std::cout << " " << *itr << ",";
+        }
         std::cout << "\n";
-    }catch (const std::exception &e){
+
+
+
+
+    } catch (const std::exception &e) {
         std::cout << e.what() << std::endl;
-    }catch (...){
+    } catch (...) {
         std::cout << "unkown exception ....";
     }
-
-
-
 
 
     return 0;
