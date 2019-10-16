@@ -157,7 +157,11 @@ namespace zero {
                     std::swap(insert_node->m_values[i], insert_node->m_values[i + 1]);
                 }
                 insert_node->m_values.pop_back();
-                insert_node->checkNodeFormat();
+                bpptree *node = insert_node->checkNodeFormat();
+                while(node != nullptr && node->m_parent != nullptr){
+                    node = node->checkNodeFormat();
+                }
+
                 return true;
             }
             else{
@@ -170,7 +174,12 @@ namespace zero {
                 }
                 itr_back.m_values.pop_back();
 
-                itr_back.checkNodeFormat();
+                bpptree *node = &itr_back;
+                while(node->m_parent != nullptr){
+                    node = node->checkNodeFormat();
+                    node = node->m_parent;
+                }
+
             }
             return true;
         }
@@ -225,7 +234,7 @@ namespace zero {
             left_node->m_values.pop_back();
         }
 
-        void checkNodeFormat(){
+        bpptree * checkNodeFormat(){
             if(m_values.size() < M / 2){
                 if(m_parent){
                     size_t indexOf = getIndexInParent();
@@ -257,13 +266,29 @@ namespace zero {
                         }else if(m_parent->m_leaf[indexOf + 1].m_values.size() > M / 2){
                             this->catchValueFromRight();
                         }else{
-                            assert(false);
+//                            assert(false);
+                            bpptree *left_node = &m_parent->m_leaf[indexOf - 1];
+                            left_node->m_values.push_back(m_parent->m_values[indexOf - 1]);
+                            left_node->m_values.insert(left_node->m_values.end(), m_values.begin(), m_values.end());
+
+                            for(size_t i = indexOf; i < m_parent->m_values.size() - 1; i++){
+                                std::swap(m_parent->m_values[i], m_parent->m_values[i + 1]);
+                            }
+                            m_parent->m_values.pop_back();
+
+                            for(size_t i = indexOf; i < m_parent->m_leaf.size() - 1; i++){
+                                std::swap(m_parent->m_leaf[i], m_parent->m_leaf[i + 1]);
+                            }
+                            m_parent->m_leaf.pop_back();
+
+
                         }
 
                     }
-
+                    return m_parent;
                 }
             }
+            return nullptr;
         }
 
 
