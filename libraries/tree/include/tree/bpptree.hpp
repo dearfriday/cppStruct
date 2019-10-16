@@ -257,8 +257,10 @@ namespace zero {
                             left_node->m_values.push_back(m_parent->m_values[indexOf - 1]);
                             left_node->m_values.insert(left_node->m_values.end(), m_values.begin(), m_values.end());
 
+                            bpptree *ret = m_parent;
                             m_parent->m_values.pop_back();
                             m_parent->m_leaf.pop_back();
+                            return ret;
                         }
                     } else{
                         if(m_parent->m_leaf[indexOf - 1].m_values.size() > M / 2){
@@ -271,7 +273,7 @@ namespace zero {
                             left_node->m_values.push_back(m_parent->m_values[indexOf - 1]);
                             left_node->m_values.insert(left_node->m_values.end(), m_values.begin(), m_values.end());
 
-                            for(size_t i = indexOf; i < m_parent->m_values.size() - 1; i++){
+                            for(size_t i = indexOf - 1; i < m_parent->m_values.size() - 1; i++){
                                 std::swap(m_parent->m_values[i], m_parent->m_values[i + 1]);
                             }
                             m_parent->m_values.pop_back();
@@ -279,8 +281,10 @@ namespace zero {
                             for(size_t i = indexOf; i < m_parent->m_leaf.size() - 1; i++){
                                 std::swap(m_parent->m_leaf[i], m_parent->m_leaf[i + 1]);
                             }
+                            bpptree *ret  = m_parent;
                             m_parent->m_leaf.pop_back();
 
+                            return ret;
 
                         }
 
