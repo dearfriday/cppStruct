@@ -16,8 +16,8 @@ namespace zero {
     template<typename KEY, size_t M = 1024, typename Compare = std::less<KEY>>
     struct bpptree {
 
-
-        static_assert(M >= 3, "bpptree M must > 3");
+//        const static size_t M = K - 1;
+        static_assert(M >= 3, "bpptree k must > 3");
         typedef     std::pair<KEY, bool>    InsertResult;
         typedef     KEY                     key_type;
 
@@ -29,7 +29,7 @@ namespace zero {
                 m_node = getBeginPoint();
             }
 
-            iterator &operator++(int){
+            iterator &operator++(int) {
                 assert(m_node != nullptr);
                 if(m_node->m_leaf.size() == 0){
                     if(m_index + 1 == m_node->m_values.size()){
@@ -49,7 +49,6 @@ namespace zero {
                             }
                         }
                         else{
-                            std::cout << "end ....\n";
                             m_node = nullptr;
                             m_index = 0;
                         }
@@ -71,7 +70,8 @@ namespace zero {
                        }
                     }
                     else{
-                        std::cout << "? \n";
+                        //unkown this condition
+                        assert(false);
                     }
                 }
                 return *this;
@@ -133,8 +133,45 @@ namespace zero {
             insert_node->insertValueToNode(key);
         }
 
-        bool remove(const key_type &key) {
 
+        /// @brief remove key from tree.
+        /// \param key
+        /// \return  true:      if key existed , remove it.   false:     cant find key.
+
+        bool remove(const key_type &key) {
+            bpptree *insert_node = findIndexNode(key);
+            assert(insert_node != nullptr );
+            auto insert_index = insert_node->findInsertIndex(key);
+
+            ///cant find key.
+            if(!insert_index.second){
+                return false;
+            }
+            size_t  remove_index = insert_index.first;
+
+
+
+
+            if(insert_node->m_leaf.size() == 0){
+                for(size_t i = remove_index; i  <  insert_node->m_values.size() - 1; i++){
+                    std::swap(insert_node->m_values[i], insert_node->m_values[i + 1]);
+                }
+                insert_node->m_values.pop_back();
+                insert_node->checkNodeFormat();
+                return true;
+            }
+            else{
+                assert(insert_node->m_leaf.size() >= remove_index + 1);
+
+                auto &itr_back = insert_node->m_leaf[remove_index + 1];
+                std::swap(itr_back.m_values[0], insert_node->m_values[remove_index]);
+                for(size_t i = 0; i < itr_back.m_values.size() - 1; i++){
+                    std::swap(itr_back.m_values[i], itr_back.m_values[i + 1]);
+                }
+                itr_back.m_values.pop_back();
+
+                itr_back.checkNodeFormat();
+            }
             return true;
         }
 
@@ -156,7 +193,92 @@ namespace zero {
 
 
 
+        void pushBack(key_type key){
+            m_values.push_back(key);
+            for(size_t i = 0; i < m_values.size() - 1; i++){
+                std::swap(m_values[i], m_values[i + 1]);
+            }
+        }
 
+        void catchValueFromRight(){
+            assert(m_parent != nullptr);
+            size_t indexOf = getIndexInParent();
+
+            bpptree *right_node = &m_parent->m_leaf[indexOf + 1];
+            m_values.push_back(m_parent->m_values[0]);
+
+            std::swap(right_node->m_values[0], m_parent->m_values[0]);
+            for(size_t i = 0; i < right_node->m_values.size() - 1; i++){
+                std::swap(right_node->m_values[i], right_node->m_values[i + 1]);
+            }
+            right_node->m_values.pop_back();
+        }
+
+        void catchValueFromLeft(){
+            assert(m_parent != nullptr);
+            size_t indexOf = getIndexInParent();
+
+            bpptree *left_node = &m_parent->m_leaf[indexOf - 1];
+            pushBack(m_parent->m_values[indexOf - 1]);
+
+            std::swap(m_parent->m_values[indexOf - 1], left_node->m_values.back());
+            left_node->m_values.pop_back();
+        }
+
+        void checkNodeFormat(){
+            if(m_values.size() < M / 2){
+                if(m_parent){
+                    size_t indexOf = getIndexInParent();
+                    assert(m_parent->m_leaf.size() >= indexOf);
+                    if(indexOf == 0){
+                        bpptree *right_node = &m_parent->m_leaf[indexOf + 1];
+                        if(right_node->m_values.size() > M / 2){
+                            this->catchValueFromRight();
+                        }else{
+                            //TODO
+                            assert(false);
+                        }
+
+                    }else if(indexOf + 1 == m_parent->m_leaf.size()){
+                        bpptree *left_node = &m_parent->m_leaf[indexOf - 1];
+                        if(left_node->m_values.size() > M / 2){
+                            this->catchValueFromLeft();
+                        } else{
+                            /// TODO
+                            left_node->m_values.push_back(m_parent->m_values[indexOf - 1]);
+                            left_node->m_values.insert(left_node->m_values.end(), m_values.begin(), m_values.end());
+
+                            m_parent->m_values.pop_back();
+                            m_parent->m_leaf.pop_back();
+                        }
+                    } else{
+                        if(m_parent->m_leaf[indexOf - 1].m_values.size() > M / 2){
+                            this->catchValueFromLeft();
+                        }else if(m_parent->m_leaf[indexOf + 1].m_values.size() > M / 2){
+                            this->catchValueFromRight();
+                        }else{
+                            assert(false);
+                        }
+
+                    }
+
+                }
+            }
+        }
+
+
+        size_t  getIndexInParent(){
+            assert(m_parent != nullptr);
+            size_t indexOf = UINT64_MAX;
+            for(size_t i = 0; i < m_parent->m_leaf.size(); i++){
+                if(this == &m_parent->m_leaf[i]){
+                    indexOf = i;
+                    break;
+                }
+            }
+            assert(indexOf != UINT64_MAX);
+            return  indexOf;
+        }
 
         /// @brief
         /// \return
@@ -270,7 +392,7 @@ namespace zero {
 
         /// @brief  find index by key.
         /// \param key
-        /// \return  @param first insert value index , @param second this value is existed.
+        /// \return  @param first insert value index , @param second  true : this value is existed.    false cant find value.
         std::pair<size_t, bool> findInsertIndex(const key_type &key) {
             size_t front = 0;
             size_t end = m_values.size() - 1;

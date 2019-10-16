@@ -4,8 +4,9 @@
 
 
 #include <tree/bpptree.hpp>
-
+//
 #include <string>
+#include <iostream>
 
 using namespace zero;
 
@@ -53,7 +54,19 @@ int main() {
             }
             std::cout << " " << *itr << ",";
         }
-        std::cout << "\n";
+        std::cout << "\n---------------------\n";
+
+        books.remove(21);
+        books.remove(27);
+        books.remove(32);
+        books.remove(40);
+        for( bpptree<int, 4>::iterator itr = books.begin(); itr != books.end(); itr++){
+            if(*itr == 97){
+                int k = 0;
+            }
+            std::cout << " " << *itr << ",";
+        }
+        std::cout << "\n---------------------";
 
 
 
