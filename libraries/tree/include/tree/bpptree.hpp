@@ -134,6 +134,16 @@ namespace zero {
         }
 
 
+//        bpptree &operator = (const bpptree &cp){
+//            this->m_values.resize(cp.m_values.size());
+//            this->m_values.assign(cp.m_values.begin(), cp.m_values.end());
+//            this->m_leaf.assign(cp.m_leaf.begin(), cp.m_leaf.end());
+//            this->m_parent = cp.m_parent;
+//            this->m_compare = cp.m_compare;
+//            return *this;
+//        }
+
+
         /// @brief remove key from tree.
         /// \param key
         /// \return  true:      if key existed , remove it.   false:     cant find key.
@@ -234,7 +244,7 @@ namespace zero {
             left_node->m_values.pop_back();
         }
 
-        bpptree * checkNodeFormat(){
+        bpptree *checkNodeFormat(){
             if(m_values.size() < M / 2){
                 if(m_parent){
                     size_t indexOf = getIndexInParent();
@@ -256,10 +266,23 @@ namespace zero {
                             /// TODO
                             left_node->m_values.push_back(m_parent->m_values[indexOf - 1]);
                             left_node->m_values.insert(left_node->m_values.end(), m_values.begin(), m_values.end());
+                            for(auto &&itr : m_leaf){
+                                itr.m_parent = left_node;
+                                left_node->m_leaf.emplace_back(itr);
+                            }
 
                             bpptree *ret = m_parent;
                             m_parent->m_values.pop_back();
                             m_parent->m_leaf.pop_back();
+
+                            if(ret && ret->m_values.size() == 0){
+//                                left_node->m_parent = nullptr;
+//                                this->m_values.clear();
+//                                this->m_leaf.clear();
+//                                *this = *left_node;
+//                                new (this)(bpptree(*left_node));
+                                ret = nullptr;
+                            }
                             return ret;
                         }
                     } else{
