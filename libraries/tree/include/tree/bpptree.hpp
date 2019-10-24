@@ -10,66 +10,77 @@
 #include <iostream>
 #include <iterator>
 #include <stack>
+
 namespace zero {
+
+
+    struct genKeyDelegate {
+
+        virtual void insert(const std::string &key, const std::string &value) = 0;
+
+        virtual std::string getValue(const std::string &key) = 0;
+    };
 
 
     template<typename KEY, size_t M = 1024, typename Compare = std::less<KEY>>
     struct bpptree {
 
-//        const static size_t M = K - 1;
         static_assert(M >= 3, "bpptree k must > 3");
-        typedef     std::pair<KEY, bool>    InsertResult;
-        typedef     KEY                     key_type;
+        typedef std::pair<KEY, bool> InsertResult;
+        typedef KEY key_type;
 
-        typedef     key_type&               reference;
-        typedef     const key_type          const_reference;
+        typedef key_type &reference;
+        typedef const key_type const_reference;
 
-        struct iterator{
-            iterator(bpptree *root):m_root(root),m_index(0){
+
+        bpptree() : m_parent(nullptr), m_delegate(nullptr) {}
+
+        ~bpptree() {
+            m_parent = nullptr;
+        }
+
+        struct iterator {
+            iterator(bpptree *root) : m_root(root), m_index(0) {
                 m_node = getBeginPoint();
             }
 
             iterator &operator++(int) {
                 assert(m_node != nullptr);
-                if(m_node->m_leaf.size() == 0){
-                    if(m_index + 1 == m_node->m_values.size()){
-                        if(m_node->m_parent != nullptr){
+                if (m_node->m_leaf.size() == 0) {
+                    if (m_index + 1 == m_node->m_values.size()) {
+                        if (m_node->m_parent != nullptr) {
                             m_node = m_node->m_parent;
                             m_index = indexOfParent.top();
                             indexOfParent.pop();
 
-                            while(m_node->m_values.size() == m_index && m_node->m_parent != nullptr){
+                            while (m_node->m_values.size() == m_index && m_node->m_parent != nullptr) {
                                 m_node = m_node->m_parent;
                                 m_index = indexOfParent.top();
                                 indexOfParent.pop();
                             }
-                            if(m_node->m_values.size() <= m_index){
+                            if (m_node->m_values.size() <= m_index) {
                                 m_node = nullptr;
                                 m_index = 0;
                             }
-                        }
-                        else{
+                        } else {
                             m_node = nullptr;
                             m_index = 0;
                         }
-                    }
-                    else{
+                    } else {
                         m_index++;
                     }
-                }
-                else {
-                   if(m_index + 1 < m_node->m_leaf.size()){
-                       m_index++;
-                       indexOfParent.push(m_index);
-                       m_node = &m_node->m_leaf[m_index];
-                       m_index = 0;
-                       while(m_node->m_leaf.size()){
-                           indexOfParent.push(m_index);
-                           m_node = &m_node->m_leaf[m_index];
-                           m_index = 0;
-                       }
-                    }
-                    else{
+                } else {
+                    if (m_index + 1 < m_node->m_leaf.size()) {
+                        m_index++;
+                        indexOfParent.push(m_index);
+                        m_node = &m_node->m_leaf[m_index];
+                        m_index = 0;
+                        while (m_node->m_leaf.size()) {
+                            indexOfParent.push(m_index);
+                            m_node = &m_node->m_leaf[m_index];
+                            m_index = 0;
+                        }
+                    } else {
                         //unkown this condition
                         assert(false);
                     }
@@ -77,27 +88,26 @@ namespace zero {
                 return *this;
             }
 
-            iterator &operator++(){
+            iterator &operator++() {
                 return this->operator++(0);
             }
 
 
-
-            key_type &operator ->(){
+            key_type &operator->() {
                 assert(m_node != nullptr && m_node->m_values.size() - 1 >= m_index);
                 return m_node->m_values[m_index];
             }
 
-            key_type &operator *(){
+            key_type &operator*() {
                 assert(m_node != nullptr && m_node->m_values.size() - 1 >= m_index);
                 return m_node->m_values[m_index];
             }
 
-            bool operator == (const iterator &itr){
-                return m_node == itr.m_node &&  m_index == itr.m_index;
+            bool operator==(const iterator &itr) {
+                return m_node == itr.m_node && m_index == itr.m_index;
             }
 
-            bool operator != (const iterator &itr){
+            bool operator!=(const iterator &itr) {
                 return !this->operator==(itr);
             }
 
@@ -105,12 +115,12 @@ namespace zero {
 
             /// @brief get min node by root node.
             /// \return
-            bpptree *getBeginPoint(){
-                if(m_root == nullptr){
+            bpptree *getBeginPoint() {
+                if (m_root == nullptr) {
                     return nullptr;
                 }
                 bpptree *node = m_root;
-                while (node->m_leaf.size() != 0){
+                while (node->m_leaf.size() != 0) {
                     node = &node->m_leaf[0];
                     indexOfParent.push(0);
                 }
@@ -118,15 +128,14 @@ namespace zero {
                 return node;
             }
 
-            bpptree             *m_root;
-            bpptree             *m_node;
-            size_t              m_index;
-            std::stack<size_t>  indexOfParent;
+            bpptree *m_root;
+            bpptree *m_node;
+            size_t m_index;
+            std::stack<size_t> indexOfParent;
         };
 
-
         iterator begin() {
-            return  iterator(this);
+            return iterator(this);
         }
 
         iterator end() {
@@ -140,58 +149,43 @@ namespace zero {
         }
 
 
-//        bpptree &operator = (const bpptree &cp){
-//            this->m_values.resize(cp.m_values.size());
-//            this->m_values.assign(cp.m_values.begin(), cp.m_values.end());
-//            this->m_leaf.assign(cp.m_leaf.begin(), cp.m_leaf.end());
-//            this->m_parent = cp.m_parent;
-//            this->m_compare = cp.m_compare;
-//            return *this;
-//        }
-
-
         /// @brief remove key from tree.
         /// \param key
         /// \return  true:      if key existed , remove it.   false:     cant find key.
-
         bool remove(const key_type &key) {
             bpptree *insert_node = findIndexNode(key);
-            assert(insert_node != nullptr );
+            assert(insert_node != nullptr);
             auto insert_index = insert_node->findInsertIndex(key);
 
             ///cant find key.
-            if(!insert_index.second){
+            if (!insert_index.second) {
                 return false;
             }
-            size_t  remove_index = insert_index.first;
+            size_t remove_index = insert_index.first;
 
-
-
-
-            if(insert_node->m_leaf.size() == 0){
-                for(size_t i = remove_index; i  <  insert_node->m_values.size() - 1; i++){
+            if (insert_node->m_leaf.size() == 0) {
+                for (size_t i = remove_index; i < insert_node->m_values.size() - 1; i++) {
                     std::swap(insert_node->m_values[i], insert_node->m_values[i + 1]);
                 }
                 insert_node->m_values.pop_back();
                 bpptree *node = checkNodeFormat(insert_node);
-                while(node != nullptr && node->m_parent != nullptr){
+                while (node != nullptr && node->m_parent != nullptr) {
                     node = checkNodeFormat(node);
                 }
 
                 return true;
-            }
-            else{
+            } else {
                 assert(insert_node->m_leaf.size() >= remove_index + 1);
 
                 auto &itr_back = insert_node->m_leaf[remove_index + 1];
                 std::swap(itr_back.m_values[0], insert_node->m_values[remove_index]);
-                for(size_t i = 0; i < itr_back.m_values.size() - 1; i++){
+                for (size_t i = 0; i < itr_back.m_values.size() - 1; i++) {
                     std::swap(itr_back.m_values[i], itr_back.m_values[i + 1]);
                 }
                 itr_back.m_values.pop_back();
 
                 bpptree *node = &itr_back;
-                while(node->m_parent != nullptr){
+                while (node->m_parent != nullptr) {
                     node = checkNodeFormat(node);
                     node = node->m_parent;
                 }
@@ -201,75 +195,70 @@ namespace zero {
         }
 
 
-        bpptree():m_parent(nullptr){}
-
-        ~bpptree() {
-            m_parent = nullptr;
-        }
-
-
-        void debug(){
+        void debug() {
             std::string ret;
             print(0, ret);
             std::cout << ret << std::endl;
         }
 
+        void setDelegate(std::shared_ptr<genKeyDelegate> del) {
+            assert(m_parent == nullptr);
+            m_delegate = del;
+        }
+
     private:
 
-        void print(int depth, std::string &ret){
-            if(m_leaf.size() > 0){
+        void print(int depth, std::string &ret) {
+            if (m_leaf.size() > 0) {
                 m_leaf[0].print(depth + 1, ret);
             }
-            for(size_t i = 0; i < m_values.size(); i++){
+            for (size_t i = 0; i < m_values.size(); i++) {
 
-                ret += std::to_string((long)this) + " " + (this->m_parent != nullptr ? std::to_string((long)this->m_parent) : "");
-                for(size_t j = 0; j < depth; j++){
+                ret += std::to_string((long) this) + " " +
+                       (this->m_parent != nullptr ? std::to_string((long) this->m_parent) : "");
+                for (size_t j = 0; j < depth; j++) {
                     ret += "\t";
                 }
                 ret += std::to_string(m_values[i]) + "\n";
-                if(m_leaf.size() > i){
+                if (m_leaf.size() > i) {
                     m_leaf[i + 1].print(depth + 1, ret);
                 }
             }
         }
 
 
-        void checkParent(){
-            for(auto &itr : m_leaf){
+        void checkParent() {
+            for (auto &itr : m_leaf) {
                 checkleaf(&itr);
             }
         }
 
-        void checkleaf(bpptree *node){
-            for(auto &itr : node->m_leaf){
+        void checkleaf(bpptree *node) {
+            for (auto &itr : node->m_leaf) {
                 checkleaf(&itr);
-                for(auto &it : itr.m_leaf){
-                    if(it.m_parent != &itr){
+                for (auto &it : itr.m_leaf) {
+                    if (it.m_parent != &itr) {
                         it.m_parent = &itr;
                     }
                 }
-
             }
-
         }
 
 
         bpptree(bpptree *parent)
-        : m_parent(parent)
-        {
+                : m_parent(parent) {
 
         }
 
 
-
-        void pushBack(key_type key){
+        void pushBack(key_type key) {
             m_values.push_back(key);
-            for(size_t i = 0; i < m_values.size() - 1; i++){
+            for (size_t i = 0; i < m_values.size() - 1; i++) {
                 std::swap(m_values[i], m_values[i + 1]);
             }
         }
 
-        void catchValueFromRight(){
+        void catchValueFromRight() {
             assert(m_parent != nullptr);
             size_t indexOf = getIndexInParent();
 
@@ -277,13 +266,13 @@ namespace zero {
             m_values.push_back(m_parent->m_values[0]);
 
             std::swap(right_node->m_values[0], m_parent->m_values[0]);
-            for(size_t i = 0; i < right_node->m_values.size() - 1; i++){
+            for (size_t i = 0; i < right_node->m_values.size() - 1; i++) {
                 std::swap(right_node->m_values[i], right_node->m_values[i + 1]);
             }
             right_node->m_values.pop_back();
         }
 
-        void catchValueFromLeft(){
+        void catchValueFromLeft() {
             assert(m_parent != nullptr);
             size_t indexOf = getIndexInParent();
 
@@ -294,29 +283,30 @@ namespace zero {
             left_node->m_values.pop_back();
         }
 
-        bpptree *checkNodeFormat(bpptree *node){
-            if(node->m_values.size() < M / 2){
-                if(node->m_parent){
+        bpptree *checkNodeFormat(bpptree *node) {
+            if (node->m_values.size() < M / 2) {
+                if (node->m_parent) {
                     size_t indexOf = node->getIndexInParent();
                     assert(node->m_parent->m_leaf.size() >= indexOf);
-                    if(indexOf == 0){
+                    if (indexOf == 0) {
                         bpptree *right_node = &node->m_parent->m_leaf[indexOf + 1];
-                        if(right_node->m_values.size() > M / 2){
+                        if (right_node->m_values.size() > M / 2) {
                             this->catchValueFromRight();
-                        }else{
+                        } else {
                             //TODO
                             assert(false);
                         }
 
-                    }else if(indexOf + 1 == node->m_parent->m_leaf.size()){
+                    } else if (indexOf + 1 == node->m_parent->m_leaf.size()) {
                         bpptree *left_node = &node->m_parent->m_leaf[indexOf - 1];
-                        if(left_node->m_values.size() > M / 2){
+                        if (left_node->m_values.size() > M / 2) {
                             node->catchValueFromLeft();
-                        } else{
+                        } else {
                             /// TODO
                             left_node->m_values.push_back(node->m_parent->m_values[indexOf - 1]);
-                            left_node->m_values.insert(left_node->m_values.end(), node->m_values.begin(), node->m_values.end());
-                            for(auto &&itr : node->m_leaf){
+                            left_node->m_values.insert(left_node->m_values.end(), node->m_values.begin(),
+                                                       node->m_values.end());
+                            for (auto &&itr : node->m_leaf) {
                                 itr.m_parent = left_node;
                                 left_node->m_leaf.emplace_back(itr);
                             }
@@ -325,10 +315,10 @@ namespace zero {
                             node->m_parent->m_values.pop_back();
                             node->m_parent->m_leaf.pop_back();
 
-                            if(ret && ret->m_values.size() == 0){
-                                new (this) bpptree();
+                            if (ret && ret->m_values.size() == 0) {
+                                new(this) bpptree();
                                 *this = *left_node;
-                                for(auto &itr : this->m_leaf){
+                                for (auto &itr : this->m_leaf) {
                                     itr.m_parent = this;
                                 }
                                 this->m_parent = nullptr;
@@ -336,25 +326,25 @@ namespace zero {
                             }
                             return ret;
                         }
-                    } else{
-                        if(node->m_parent->m_leaf[indexOf - 1].m_values.size() > M / 2){
+                    } else {
+                        if (node->m_parent->m_leaf[indexOf - 1].m_values.size() > M / 2) {
                             node->catchValueFromLeft();
-                        }else if(node->m_parent->m_leaf[indexOf + 1].m_values.size() > M / 2){
+                        } else if (node->m_parent->m_leaf[indexOf + 1].m_values.size() > M / 2) {
                             node->catchValueFromRight();
-                        }else{
+                        } else {
                             bpptree *left_node = &node->m_parent->m_leaf[indexOf - 1];
                             left_node->m_values.push_back(node->m_parent->m_values[indexOf - 1]);
                             left_node->m_values.insert(left_node->m_values.end(), m_values.begin(), m_values.end());
 
-                            for(size_t i = indexOf - 1; i < node->m_parent->m_values.size() - 1; i++){
+                            for (size_t i = indexOf - 1; i < node->m_parent->m_values.size() - 1; i++) {
                                 std::swap(node->m_parent->m_values[i], node->m_parent->m_values[i + 1]);
                             }
                             node->m_parent->m_values.pop_back();
 
-                            for(size_t i = indexOf; i < node->m_parent->m_leaf.size() - 1; i++){
+                            for (size_t i = indexOf; i < node->m_parent->m_leaf.size() - 1; i++) {
                                 std::swap(node->m_parent->m_leaf[i], node->m_parent->m_leaf[i + 1]);
                             }
-                            bpptree *ret  = node->m_parent;
+                            bpptree *ret = node->m_parent;
                             node->m_parent->m_leaf.pop_back();
                             return ret;
                         }
@@ -367,17 +357,17 @@ namespace zero {
         }
 
 
-        size_t  getIndexInParent(){
+        size_t getIndexInParent() {
             assert(m_parent != nullptr);
             size_t indexOf = UINT64_MAX;
-            for(size_t i = 0; i < m_parent->m_leaf.size(); i++){
-                if(this == &m_parent->m_leaf[i]){
+            for (size_t i = 0; i < m_parent->m_leaf.size(); i++) {
+                if (this == &m_parent->m_leaf[i]) {
                     indexOf = i;
                     break;
                 }
             }
             assert(indexOf != UINT64_MAX);
-            return  indexOf;
+            return indexOf;
         }
 
         /// @brief
@@ -463,18 +453,16 @@ namespace zero {
 
                     if (insert_parent->m_parent != nullptr) {
                         insert_parent = insertValueLeafToNode(insert_parent->m_parent, std::move(mid_value),
-                                                                             std::move(front_tree),
-                                                                             std::move(back_tree));
-                        for(auto &itr : insert_parent->m_leaf){
+                                                              std::move(front_tree),
+                                                              std::move(back_tree));
+                        for (auto &itr : insert_parent->m_leaf) {
                             assert(itr.m_parent == insert_parent);
-                            for(auto &it : itr.m_leaf){
-                                if(it.m_parent != &itr){
+                            for (auto &it : itr.m_leaf) {
+                                if (it.m_parent != &itr) {
                                     it.m_parent = &itr;
                                 }
                             }
                         }
-
-
 
                     } else {
                         insert_parent->m_values.clear();
@@ -483,7 +471,6 @@ namespace zero {
                         insert_parent->m_values.push_back(mid_value);
                         insert_parent->m_leaf.push_back(front_tree);
                         insert_parent->m_leaf.push_back(back_tree);
-
 
                         for (auto &itr : insert_parent->m_leaf) {
                             for (auto &it : itr.m_leaf) {
@@ -552,10 +539,15 @@ namespace zero {
         }
 
 
-        Compare                                     m_compare;
-        std::vector<key_type>                       m_values;
-        std::vector<bpptree<key_type, M, Compare>>  m_leaf;
-        bpptree                                     *m_parent;
+        Compare m_compare;
+        std::vector<key_type> m_values;
+        std::vector<bpptree<key_type, M, Compare>> m_leaf;
+        bpptree *m_parent;
+
+        std::vector<std::string> m_keyOfLeaf;
+        std::string m_keyOfParent;
+        std::string m_keyOfSelf;
+        std::shared_ptr<genKeyDelegate> m_delegate;
     };
 
 

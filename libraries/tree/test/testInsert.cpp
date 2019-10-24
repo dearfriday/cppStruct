@@ -37,15 +37,37 @@ book createRand() {
 }
 
 
+
+struct database : public zero::genKeyDelegate{
+
+
+    virtual void insert(const std::string &key, const std::string &value) {
+
+    }
+
+
+    virtual std::string getValue(const std::string &key){
+        return "";
+    }
+};
+
+
+
+
+
 int main() {
     try {
+
+        std::shared_ptr<database> db(new database);
         bpptree<int , 4> books;
+
+        books.setDelegate(db);
+
 
         int last_insert = 12800;
         for (size_t i = 0; i < last_insert; i++) {
             books.insert(i);
 //            std::cout << "-------------------\n";
-//
         }
 //        books.debug();
         std::cout << "-------------------\n";
