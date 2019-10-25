@@ -15,9 +15,7 @@ namespace zero {
 
 
     struct genKeyDelegate {
-
         virtual void insert(const std::string &key, const std::string &value) = 0;
-
         virtual std::string getValue(const std::string &key) = 0;
     };
 
@@ -206,6 +204,7 @@ namespace zero {
             m_delegate = del;
         }
 
+
     private:
 
         void print(int depth, std::string &ret) {
@@ -302,7 +301,6 @@ namespace zero {
                         if (left_node->m_values.size() > M / 2) {
                             node->catchValueFromLeft();
                         } else {
-                            /// TODO
                             left_node->m_values.push_back(node->m_parent->m_values[indexOf - 1]);
                             left_node->m_values.insert(left_node->m_values.end(), node->m_values.begin(),
                                                        node->m_values.end());
@@ -350,6 +348,9 @@ namespace zero {
                         }
 
                     }
+
+
+
                     return node->m_parent;
                 }
             }
@@ -425,6 +426,9 @@ namespace zero {
                     bpptree *parent = insert_parent->m_parent != nullptr ? insert_parent->m_parent : insert_parent;
                     bpptree<key_type, M, Compare> front_tree(parent);
                     bpptree<key_type, M, Compare> back_tree(parent);
+
+
+
                     key_type mid_value = insert_parent->m_values[mid_length - 1];
 
                     auto begin = insert_parent->m_values.begin();
@@ -480,6 +484,7 @@ namespace zero {
                         insert_parent = insert_parent->m_parent;
                     }
                     checkParent();
+
                 } else {
                     return;
                 }
@@ -548,6 +553,8 @@ namespace zero {
         std::string m_keyOfParent;
         std::string m_keyOfSelf;
         std::shared_ptr<genKeyDelegate> m_delegate;
+
+//        static const std::string   rootDefaultKey = "rootKeyBppTree";
     };
 
 

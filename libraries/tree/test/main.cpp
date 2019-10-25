@@ -1,71 +1,56 @@
-//
-// Created by nova on 10/09/2019.
-//
-
-
-#include <tree/bpptree.hpp>
-//
 #include <string>
 #include <iostream>
 
-using namespace zero;
+#include <boost/multi_index_container.hpp>
+#include <boost/multi_index/member.hpp>
+#include <boost/multi_index/ordered_index.hpp>
+#include <boost/multi_index/composite_key.hpp>
 
-
-struct book {
-
-
-    size_t id = 0;
-    std::string name;
-
-    bool operator<(const book &b) const {
-        return id < b.id;
+using namespace boost::multi_index;
+struct test{
+    int i = 0;
+    test(int k){
+        i = k;
+    }
+    friend  bool operator < (const test &a,  const test &b) {
+        return a.i < b.i;
     }
 
-    bool operator>(const book &b) const {
-        return id > b.id;
+    friend  bool operator > (const test &a, const test &b){
+        return a.i > b.i;
     }
-
-
-    std::string operator()(){
-        return std::to_string(id);
-    }
-
 };
+
+struct by_id;
+typedef boost::multi_index_container<
+        test,
+        indexed_by<
+                ordered_unique<tag<by_id>,
+                        composite_key<test, member<test, int, &test::i>>,
+                        composite_key_compare<std::less<test>>
+                >
+        >
+
+> test_index;
+
+
 
 
 int main() {
-    try {
-        std::cout << "xxxxxxxxx\n";
-        bpptree<int, 4> books;
-        std::vector<int> data = {39, 22, 97, 41, 53, 13, 21, 40, 30, 27, 33, 36, 35, 34, 23, 24, 29, 26, 32, 17, 28, 31};
+    test_index tt;
+    tt.insert(test(4));
+    tt.insert(test(1));
+    tt.insert(test(5));
+    tt.insert(test(9));
+    tt.insert(test(8));
 
-        for (size_t i = 0; i < data.size(); i++) {
-            books.insert(data[i]);
-        }
-        books.insert(32);
-
-
-
-        books.debug();
-
-        books.remove(21);
-        books.remove(27);
-        books.remove(32);
-        books.remove(40);
-        for(auto &itr : books){
-            std::cout << " "  << itr << ",";
-        }
-        std::cout << "\n---------------------";
+    test_index::index_specifier_type_list   vv;
 
 
 
-
-    } catch (const std::exception &e) {
-        std::cout << e.what() << std::endl;
-    } catch (...) {
-        std::cout << "unkown exception ....";
-    }
-
-
+//    const auto low = tt.lower_bound(test(6));
+//    for(auto itr= low; itr != tt.end(); itr++){
+//        std::cout << itr->i << std::endl;
+//    }
     return 0;
 }
