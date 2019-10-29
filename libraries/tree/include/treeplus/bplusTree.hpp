@@ -117,7 +117,7 @@ namespace zero {
                 return findKeyIndex(kv, mValues, com);
             }
 
-            void insertValue(const key_type &key, const value_type &value) {
+            bool insertValue(const key_type &key, const value_type &value) {
                 find_ret_type index = getIndex(kv_pair(key, value));
                 if(!index.first){
                     insertToVector(kv_pair(key, value), mValues, index.second);
@@ -125,7 +125,7 @@ namespace zero {
                 else{
                     mValues[index.second] = kv_pair(key, value);
                 }
-
+                return index.first;
             }
 
             bool isNull() {
@@ -145,7 +145,6 @@ namespace zero {
             NodeKey mParentKey;
             std::vector<key_type> mKeys;              //keys
             std::vector<NodeKey> mChildrenNodes;     //children keys.
-//            std::vector<NodeKey> mLeafs;             //
             Compare mCompare;
 
             std::string encode() {
@@ -162,8 +161,9 @@ namespace zero {
                 if (!id.first) {
                     insertToVector(k, mKeys, id.second);
                     insertToVector(chKey, mChildrenNodes, id.second + 1);
-                } else {
-                    assert(false);
+                }
+                else{
+                    mChildrenNodes[id.second + 1] = chKey;
                 }
 
             }
@@ -217,8 +217,8 @@ namespace zero {
             return __insert(key, value);
         }
 
-        void remove(const key_type &key) {
-
+        bool remove(const key_type &key) {
+            return __remove(key);
         }
 
 
@@ -248,30 +248,36 @@ namespace zero {
 
     private:
 
+        bool __remove(const key_type &key){
+
+
+
+            return true;
+        }
 
         bool __insert(const key_type &key, const value_type &value) {
             NodeKey insertKey;
-
+            bool insert_ret = false;
             auto root_type = getType(rootKey);
 
             if (root_type.second == NodeLeaf::null) {    //create root.
                 auto ret = createData(mLeafs);
-                ret.second.insertValue(key, value);
+                insert_ret = ret.second.insertValue(key, value);
                 rootKey = ret.second.mSelfKey;
                 return true;
             } else if (root_type.second == NodeLeaf::leaf) {  //insert to root leaf.
                 auto &ret = mLeafs[rootKey];
-                ret.insertValue(key, value);
+                insert_ret = ret.insertValue(key, value);
                 insertKey = ret.mSelfKey;
             } else { // root node is not leaf,
                 auto ret = findInsertPos(key, value);
-                ret.second.insertValue(key, value);
+                insert_ret = ret.second.insertValue(key, value);
                 insertKey = ret.second.mSelfKey;
             }
 
             checkFormat(insertKey);
 
-            return false;
+            return insert_ret;
         }
 
         /// check node or leaf is format of tree.
@@ -466,6 +472,7 @@ namespace zero {
                 if (data.size()) {
                     T t;
                     t.decode(data);
+                    assert(db.count(nk));
                     db[nk] = t;
                     return {true, &db[nk]};
                 }
@@ -490,6 +497,5 @@ namespace zero {
         std::map<NodeKey, leaf_type> mLeafs;
 
     };
-
 
 }
