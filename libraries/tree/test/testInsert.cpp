@@ -64,7 +64,7 @@ int main() {
         books.setDelegate(db);
 
 
-        int last_insert = 12800;
+        int last_insert = 18;
         for (size_t i = 0; i < last_insert; i++) {
             books.insert(i);
 //            std::cout << "-------------------\n";

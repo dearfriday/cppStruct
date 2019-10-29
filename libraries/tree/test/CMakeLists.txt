@@ -20,3 +20,9 @@ add_executable(test_dg
         testDg.cpp)
 target_include_directories(test_dg PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 target_link_libraries(test_dg PUBLIC btree)
+
+
+add_executable(test_bplus
+        testTreePlus.cpp)
+target_include_directories(test_bplus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_link_libraries(test_bplus PUBLIC btree)

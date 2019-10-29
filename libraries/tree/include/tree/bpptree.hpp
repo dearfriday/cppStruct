@@ -20,6 +20,21 @@ namespace zero {
     };
 
 
+    struct nodePosition{
+        size_t deep = 0;
+        size_t index = 0;
+
+        std::string operator ()(){
+            return std::to_string(deep) + "-" + std::to_string(index);
+        }
+
+        void set(size_t d, size_t i){
+            deep = d;
+            index = i;
+        }
+    };
+
+
     template<typename KEY, size_t M = 1024, typename Compare = std::less<KEY>>
     struct bpptree {
 
@@ -218,6 +233,7 @@ namespace zero {
                 for (size_t j = 0; j < depth; j++) {
                     ret += "\t";
                 }
+//                ret += std::to_string(m_values[i]) + " "+ m_position() + "\n";
                 ret += std::to_string(m_values[i]) + "\n";
                 if (m_leaf.size() > i) {
                     m_leaf[i + 1].print(depth + 1, ret);
@@ -238,6 +254,7 @@ namespace zero {
                 for (auto &it : itr.m_leaf) {
                     if (it.m_parent != &itr) {
                         it.m_parent = &itr;
+                        it.m_position.set(itr.m_position.deep + 1, itr.m_position.index);
                     }
                 }
             }
@@ -349,8 +366,6 @@ namespace zero {
 
                     }
 
-
-
                     return node->m_parent;
                 }
             }
@@ -395,6 +410,8 @@ namespace zero {
                 assert(insert_node->m_leaf.size() > insert_index.first);
                 std::swap(insert_node->m_leaf[insert_index.first], first);
                 assert(second.m_parent == insert_node);
+
+                second.m_position.index = insert_node->m_leaf.size();
                 insert_node->m_leaf.push_back(second);
                 for (size_t i = insert_node->m_leaf.size() - 1; i > insert_index.first + 1; i--) {
                     std::swap(insert_node->m_leaf[i], insert_node->m_leaf[i - 1]);
@@ -426,6 +443,12 @@ namespace zero {
                     bpptree *parent = insert_parent->m_parent != nullptr ? insert_parent->m_parent : insert_parent;
                     bpptree<key_type, M, Compare> front_tree(parent);
                     bpptree<key_type, M, Compare> back_tree(parent);
+
+                    //set position
+                    if(parent){
+                        front_tree.m_position.set(parent->m_position.deep + 1, parent->m_position.index + 1);
+                        front_tree.m_position.set(parent->m_position.deep + 1, parent->m_position.index + 1);
+                    }
 
 
 
@@ -483,7 +506,7 @@ namespace zero {
                         }
                         insert_parent = insert_parent->m_parent;
                     }
-                    checkParent();
+//                    checkParent();
 
                 } else {
                     return;
@@ -553,6 +576,9 @@ namespace zero {
         std::string m_keyOfParent;
         std::string m_keyOfSelf;
         std::shared_ptr<genKeyDelegate> m_delegate;
+
+        nodePosition       m_position;
+
 
 //        static const std::string   rootDefaultKey = "rootKeyBppTree";
     };

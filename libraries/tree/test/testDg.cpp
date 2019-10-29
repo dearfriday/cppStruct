@@ -1,3 +1,11 @@
+/*
+ * @Descripttion: 
+ * @version: v0.0.1
+ * @Author: friday
+ * @Date: 2019-10-25 10:47:37
+ * @LastEditors: friday
+ * @LastEditTime: 2019-10-25 11:35:15
+ */
 //
 // Created by friday on 2019/10/24.
 //
@@ -30,6 +38,7 @@ struct testdb : public zero::genKeyDelegate{
 
 
 int main(int argc, char *argv[]){
+    std::cout << "hello world!.\n";
 
     std::shared_ptr<testdb> db(new testdb);
 
