@@ -26,3 +26,9 @@ add_executable(test_bplus
         testTreePlus.cpp)
 target_include_directories(test_bplus PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 target_link_libraries(test_bplus PUBLIC btree)
+
+
+add_executable(simplepp
+        simplepp.cpp)
+target_include_directories(simplepp PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_link_libraries(simplepp PUBLIC btree)

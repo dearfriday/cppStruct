@@ -35,7 +35,7 @@ namespace zero {
 
     namespace internal {
 
-        typedef  std::pair<bool, size_t>    find_ret_type;
+        typedef std::pair<bool, size_t> find_ret_type;
 
 
         /// find key of vector pos.
@@ -117,12 +117,15 @@ namespace zero {
                 return findKeyIndex(kv, mValues, com);
             }
 
+            bool insertValue(const kv_pair &kv) {
+                return insertValue(kv.first, kv.second);
+            }
+
             bool insertValue(const key_type &key, const value_type &value) {
                 find_ret_type index = getIndex(kv_pair(key, value));
-                if(!index.first){
+                if (!index.first) {
                     insertToVector(kv_pair(key, value), mValues, index.second);
-                }
-                else{
+                } else {
                     mValues[index.second] = kv_pair(key, value);
                 }
                 return index.first;
@@ -132,6 +135,17 @@ namespace zero {
                 return mSelfKey.empty() && mParentKey.empty() && mNextKey.empty() && !mValues.size();
             }
 
+            bool removeValue(const key_type &key) {
+                kv_pair kp;
+                kp.first = key;
+                find_ret_type id = getIndex(kp);
+                if (id.first) {
+                    mValues.erase(mValues.begin() + id.second);
+
+                    return true;
+                }
+                return false;
+            }
         };
 
 
@@ -161,8 +175,7 @@ namespace zero {
                 if (!id.first) {
                     insertToVector(k, mKeys, id.second);
                     insertToVector(chKey, mChildrenNodes, id.second + 1);
-                }
-                else{
+                } else {
                     mChildrenNodes[id.second + 1] = chKey;
                 }
 
@@ -174,7 +187,7 @@ namespace zero {
             NodeKey getChildrenNode(const key_type &key) {
 //                assert(mKeys.size() > 0);
                 auto ret = findKeyIndex(key, mKeys, mCompare);
-                if(!ret.first){ // key is same
+                if (!ret.first) { //
                     return mChildrenNodes[ret.second];
                 }
                 return mChildrenNodes[ret.second + 1];
@@ -185,6 +198,16 @@ namespace zero {
                 return mSelfKey.empty() && mParentKey.empty() && mKeys.empty() && mChildrenNodes.empty();
             }
 
+            size_t getKeyIndex(const NodeKey &key) {
+                size_t index = 0;
+                for (auto &itr : mChildrenNodes) {
+                    if (itr == key) {
+                        break;
+                    }
+                    index++;
+                }
+                return index;
+            }
 
         };
 
@@ -223,9 +246,9 @@ namespace zero {
 
 
         void debug() {
-            std::cout << "root : " << rootKey << std::endl;
+            std::cout << "******************************** root : " << rootKey << std::endl;
             for (auto &itr : mNodes) {
-                std::string str = "key: " + itr.first  + " = ";
+                std::string str = "key: " + itr.first + "<" + itr.second.mParentKey + ">" + " = ";
                 for (auto &it : itr.second.mKeys) {
                     str += std::to_string(it) + ",";
                 }
@@ -236,20 +259,29 @@ namespace zero {
                 std::cout << str << "[" << str1 << "]" << std::endl;
             }
             std::cout << "leaf --------------------\n";
-            for(auto &itr : mLeafs){
-                std::string str = "key:" + itr.first + " = ";
-                for(auto &it : itr.second.mValues){
+            for (auto &itr : mLeafs) {
+                std::string str = "key:" + itr.first + "<" + itr.second.mParentKey + ">" + " = ";
+                for (auto &it : itr.second.mValues) {
                     str += "(" + std::to_string(it.first) + "," + it.second + "),";
                 }
                 std::cout << str << std::endl;
             }
+            std::cout << "******************************** root : " << rootKey << std::endl;
         }
 
 
     private:
 
-        bool __remove(const key_type &key){
+        bool __remove(const key_type &key) {
+            std::pair<key_type, value_type> find;
+            find.first = key;
+            auto ret = findInsertPos(find.first, find.second);
+            if (ret.first) {
+                return false;
+            }
 
+            ret.second.removeValue(key);
+            checkFormat(ret.second.mSelfKey);
 
 
             return true;
@@ -288,6 +320,7 @@ namespace zero {
             while (checkNode.size() > 0) {
                 switch (getType(checkNode).second) {
                     case NodeLeaf::node: {
+                        debug();
                         checkNode = checkFormatNode(checkNode);
                         break;
                     }
@@ -298,18 +331,22 @@ namespace zero {
                     default: {
                         assert(false);
                     }
+
                 }
             }
         }
 
 
         NodeKey checkFormatNode(const NodeKey &nk) {
+            if(!mNodes.count(nk)){
+                return NodeKey();
+            }
             auto &nd = mNodes[nk];
             assert(!nd.isNull());
             if (nd.mKeys.size() == LENGTH + 1) {
                 size_t mid_pos = nd.mKeys.size() / 2;
                 auto &nodeLeft = createData(mNodes).second;
-                if(nd.mParentKey.empty()){
+                if (nd.mParentKey.empty()) {
                     auto &parent = createData(mNodes).second;
 
                     ///relative key of parent
@@ -326,28 +363,44 @@ namespace zero {
                     nodeLeft.mKeys.resize(mid_pos);
                     std::copy(nd.mKeys.begin() + mid_pos + 1, nd.mKeys.end(), nodeLeft.mKeys.begin());
 
-                    nodeLeft.mChildrenNodes.resize(mid_pos + 1);
-                    std::copy(nd.mChildrenNodes.begin() + mid_pos, nd.mChildrenNodes.end(), nodeLeft.mChildrenNodes.begin());
+                    for (size_t i = mid_pos + 1; i < nd.mChildrenNodes.size(); i++) {
+                        auto pb = nd.mChildrenNodes[i];
+                        switch (getType(pb).second) {
+                            case NodeLeaf::node : {
+                                mNodes[pb].mParentKey = nodeLeft.mSelfKey;
+                                break;
+                            }
+                            case NodeLeaf::leaf : {
+                                mLeafs[pb].mParentKey = nodeLeft.mSelfKey;
+                                break;
+                            }
+                            default: {
+                                assert(false);
+                            }
+                        }
+                        nodeLeft.mChildrenNodes.push_back(pb);
+                    }
+
 
                     ///pop value.
                     size_t pop_size = mid_pos + 1;
-                    while (pop_size-- != 0){
+                    while (pop_size-- != 0) {
                         nd.mKeys.pop_back();
                         nd.mChildrenNodes.pop_back();
                     }
                     rootKey = parent.mSelfKey;
                     return parent.mSelfKey;
-                }
-                else{
+                } else {
                     nodeLeft.mKeys.resize(mid_pos);
                     std::copy(nd.mKeys.begin() + mid_pos + 1, nd.mKeys.end(), nodeLeft.mKeys.begin());
 
                     nodeLeft.mChildrenNodes.resize(mid_pos + 1);
-                    std::copy(nd.mChildrenNodes.begin() + mid_pos, nd.mChildrenNodes.end(), nodeLeft.mChildrenNodes.begin());
+                    std::copy(nd.mChildrenNodes.begin() + mid_pos, nd.mChildrenNodes.end(),
+                              nodeLeft.mChildrenNodes.begin());
 
                     ///pop value.
                     size_t pop_size = mid_pos + 1;
-                    while (pop_size-- != 0){
+                    while (pop_size-- != 0) {
                         nd.mKeys.pop_back();
                         nd.mChildrenNodes.pop_back();
                     }
@@ -358,6 +411,12 @@ namespace zero {
                     assert(parentNode.mSelfKey == nodeLeft.mParentKey && nodeLeft.mParentKey == nodeLeft.mParentKey);
                     return parentNode.mSelfKey;
                 }
+            } else if (nd.mKeys.size() < LENGTH / 2) {
+                if (nd.mParentKey.empty()) {
+                    return NodeKey();
+                }
+
+                return catchValueFromBrother(nd.mSelfKey);
             }
 
             return NodeKey();
@@ -406,15 +465,205 @@ namespace zero {
                     auto &parentNode = mNodes[nd.mParentKey];
                     parentNode.insertKey(nd.mValues[mid_pos].first, leaf.mSelfKey);
                     leaf.mParentKey = nd.mParentKey;
-                    assert( parentNode.mSelfKey == leaf.mParentKey && parentNode.mSelfKey == leaf.mParentKey);
+                    assert(parentNode.mSelfKey == leaf.mParentKey && parentNode.mSelfKey == leaf.mParentKey);
                     return parentNode.mSelfKey;
                 }
+            } else if (nd.mValues.size() < LENGTH / 2) {
+                if (nd.mParentKey.empty()) {
+                    return NodeKey();
+                }
+
+                return catchValueFromBrother(nd.mSelfKey);
             }
 
             return NodeKey();
         }
 
 
+        bool moveValueFromTo(node_type &from, node_type &to) {
+            assert(!from.isNull() && !to.isNull() && from.mParentKey == to.mParentKey);
+            auto &parent = mNodes[from.mParentKey];
+            size_t indexFrom = getIndexInParent(from.mSelfKey);
+            size_t indexTo = getIndexInParent(to.mSelfKey);
+
+            if (indexFrom > indexTo) {
+
+            } else if (indexTo > indexFrom) {
+
+            } else {
+                assert(false);
+            }
+
+
+            return false;
+        }
+
+        bool moveValueFromTo(leaf_type &from, leaf_type &to) {
+            assert(!from.isNull() && !to.isNull() && from.mParentKey == to.mParentKey);
+            auto &parent = mNodes[from.mParentKey];
+            size_t indexFrom = getIndexInParent(from.mSelfKey);
+            size_t indexTo = getIndexInParent(to.mSelfKey);
+
+            if (indexFrom > indexTo) {
+                to.mValues.push_back(from.mValues[0]);
+                from.mValues.erase(from.mValues.begin());
+                parent.mKeys[indexTo] = from.mValues[0].first;
+                return true;
+            } else if (indexTo > indexFrom) {
+                to.insertValue(from.mValues.back());
+                parent.mKeys[indexFrom] = from.mValues.back().first;
+                from.mValues.pop_back();
+                return true;
+            } else {
+                assert(false);
+            }
+
+            return false;
+        }
+
+        bool moveAllValueTo(leaf_type &from, leaf_type &to) {
+            size_t indexFrom = getIndexInParent(from.mSelfKey);
+
+            auto &parent = mNodes[from.mParentKey];
+            for (size_t i = 0; i < from.mValues.size(); i++) {
+                to.insertValue(from.mValues[i]);
+            }
+
+            size_t remove_key = indexFrom > 0 ? indexFrom - 1 : 0;
+            parent.mKeys.erase(parent.mKeys.begin() + remove_key);
+            parent.mChildrenNodes.erase(parent.mChildrenNodes.begin() + indexFrom);
+            deleteData(mLeafs, from.mSelfKey);
+            return true;
+        }
+
+        bool moveAllValueTo(node_type &from, node_type &to) {
+            size_t indexFrom = getIndexInParent(from.mSelfKey);
+            auto &parent = mNodes[from.mParentKey];
+            if(parent.mKeys.size() == 1){
+                for(size_t i = 0; i < to.mKeys.size(); i++){
+                }
+            }
+            else{
+
+            }
+
+
+
+            return true;
+        }
+
+
+        /// catch value from brother,
+        /// \param nk
+        /// \return
+        NodeKey catchValueFromBrother(const NodeKey &nk) {
+
+            auto type = getType(nk);
+            if (type.first) {
+                switch (type.second) {
+                    case NodeLeaf::leaf : {
+                        auto &nd = mLeafs[nk];
+                        auto &parent = mNodes[nd.mParentKey];
+                        size_t indexOf = getIndexInParent(nd.mSelfKey);
+
+
+                        if (indexOf == 0) {               ///from right.
+                            auto &rightLeaf = mLeafs[parent.mChildrenNodes[indexOf + 1]];
+                            if (rightLeaf.mValues.size() > LENGTH / 2) {
+                                moveValueFromTo(rightLeaf, nd);
+                            } else {
+                                moveAllValueTo(nd, rightLeaf);
+                            }
+                        } else if (indexOf + 1 == parent.mChildrenNodes.size()) { ///from left
+                            auto &leftLeaf = mLeafs[parent.mChildrenNodes[indexOf - 1]];
+                            if (leftLeaf.mValues.size() > LENGTH / 2) {
+                                moveValueFromTo(leftLeaf, nd);
+                            } else {
+                                ///TODO , move all value to left ?.
+                                moveAllValueTo(nd, leftLeaf);
+                            }
+                        } else {
+                            if (mLeafs[parent.mChildrenNodes[indexOf + 1]].mValues.size() > LENGTH / 2) {
+                                ///from right.
+                                moveValueFromTo(mLeafs[parent.mChildrenNodes[indexOf + 1]], nd);
+                            } else if (mLeafs[parent.mChildrenNodes[indexOf - 1]].mValues.size() > LENGTH / 2) {
+                                ///from left
+                                moveValueFromTo(mLeafs[parent.mChildrenNodes[indexOf - 1]], nd);
+                            } else {
+                                ///TODO ,
+                                moveAllValueTo(nd, mLeafs[parent.mChildrenNodes[indexOf - 1]]);
+                            }
+                        }
+                        return parent.mSelfKey;
+                    }
+                    case NodeLeaf::node : {
+                        auto &nd = mNodes[nk];
+                        auto &parent = mNodes[nd.mParentKey];
+                        size_t indexOf = getIndexInParent(nd.mSelfKey);
+
+                        if (indexOf == 0) {               ///from right.
+                            auto &rightNode = mNodes[parent.mChildrenNodes[indexOf + 1]];
+                            if (rightNode.mKeys.size() > LENGTH / 2) {
+                                moveValueFromTo(rightNode, nd);
+                            } else {
+                                moveAllValueTo(nd, rightNode);
+                            }
+                        } else if (indexOf + 1 == parent.mChildrenNodes.size()) { ///from left
+                            auto &leftLeaf = mNodes[parent.mChildrenNodes[indexOf - 1]];
+                            if (leftLeaf.mKeys.size() > LENGTH / 2) {
+                                moveValueFromTo(nd, leftLeaf);
+                            } else {
+                                ///TODO , move all value to left ?.
+                                assert(false);
+                            }
+                        } else {
+                            if (mNodes[parent.mChildrenNodes[indexOf + 1]].mKeys.size() > LENGTH / 2) {
+                                ///from right.
+                                moveValueFromTo(mNodes[parent.mChildrenNodes[indexOf + 1]], nd);
+                            } else if (mNodes[parent.mChildrenNodes[indexOf - 1]].mKeys.size() > LENGTH / 2) {
+                                ///from left
+                                moveValueFromTo(nd, mNodes[parent.mChildrenNodes[indexOf - 1]]);
+                            } else {
+                                ///TODO ,
+                            }
+                        }
+                        return parent.mSelfKey;
+                    }
+                    default: {
+                        return NodeKey();
+                    }
+                }
+            }
+            return NodeKey();
+        }
+
+
+        size_t getIndexInParent(const NodeKey &nk) {
+            auto type = getType(nk);
+            if(type.first){
+                if(type.second == NodeLeaf::node){
+                    auto &nd = mNodes[nk];
+                    if (!nd.mParentKey.empty()) {
+                        auto &parent = mNodes[nd.mParentKey];
+                        return parent.getKeyIndex(nd.mSelfKey);
+                    }
+                }
+                else if(type.second == NodeLeaf::leaf){
+                    auto &nd = mLeafs[nk];
+                    if (!nd.mParentKey.empty()) {
+                        auto &parent = mNodes[nd.mParentKey];
+                        return parent.getKeyIndex(nd.mSelfKey);
+                    }
+                }
+            }
+
+            return 0;
+        }
+
+        ///
+        /// \param key
+        /// \param value
+        /// \return
         std::pair<bool, leaf_type &> findInsertPos(const key_type &key, const value_type &value) {
             NodeKey findKey = rootKey;
             while (true) {
@@ -439,6 +688,9 @@ namespace zero {
             return {false, mLeafs[findKey]};
         }
 
+        /// get node type by key
+        /// \param nk nodekey
+        /// \return  @bool true : find , false not find , @NodeLeaf node type.
         std::pair<bool, NodeLeaf> getType(const NodeKey &nk) {
             if (nk.size() == 0) {
                 return {false, NodeLeaf::null};
@@ -447,7 +699,6 @@ namespace zero {
             if (getData(nk, mLeafs).first) {
                 return {true, NodeLeaf::leaf};
             }
-
 
             if (getData(nk, mNodes).first) {
                 return {true, NodeLeaf::node};
@@ -486,6 +737,12 @@ namespace zero {
             t.mSelfKey = generateKey();
             db[t.mSelfKey] = t;
             return {true, db[t.mSelfKey]};
+        }
+
+        template<typename T>
+        bool deleteData(std::map<NodeKey, T> &db, const NodeKey &nd) {
+            db.erase(nd);
+            return true;
         }
 
 

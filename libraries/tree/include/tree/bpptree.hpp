@@ -202,7 +202,6 @@ namespace zero {
                     node = checkNodeFormat(node);
                     node = node->m_parent;
                 }
-
             }
             return true;
         }
